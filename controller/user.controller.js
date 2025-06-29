@@ -1,0 +1,177 @@
+const express = require("express");
+const app = express();
+const bcrypt = require("bcryptjs");
+const userModel = require("../models/user.model");
+const nodemailer = require("nodemailer");
+const cloudinary = require("cloudinary");
+const dotenv = require("dotenv");
+dotenv.config();
+const jwt = require("jsonwebtoken");
+
+let message;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.CLOUD_KEY,
+  api_secret: process.env.CLOUD_SECRET, // Click 'View API Keys' above to copy your API secret
+});
+const checkk = (req, res) => {
+  res.send("i dey");
+};
+
+//you will need this, very important
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token){
+    res.send({
+      status: 401,
+      message: "unauthorized token"
+    })
+  }
+
+  jwt.verify(token, process.env.APP_PASS, (err, user) => {
+    if (err) {
+      res.send({
+        status: 403,
+        message:' token is invalid'
+      })
+    }
+    req.user = user;
+    next();
+  });
+};
+
+const signupPage = async (req, res) => {
+  console.log("working");
+  const { firstName, lastName, email, phoneNumber, password, profileImage } =
+    req.body;
+  let image;
+  console.log("working 00");
+  try {
+    const saltRound = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(req.body.password, saltRound);
+
+    console.log("working eee");
+
+    await cloudinary.v2.uploader.upload(profileImage, async (error, result) => {
+      if (error) {
+        console.log("cannot upload file at the moment");
+      } else {
+        console.log("file uploaded successfully");
+        console.log(result.secure_url);
+        image = result.secure_url;
+      }
+    });
+    console.log(image);
+    console.log(hashedPassword);
+    console.log(req.body);
+
+    let user = userModel({
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      profileImage: image,
+      password: hashedPassword,
+    });
+    await user.save();
+
+    var mailOptions = {
+      
+    }
+
+
+    res.send({ status: true, message: "account created successfully" });
+  } catch (err) {
+    console.log(err);
+
+    res.send({
+      status: "false",
+      message: "cannot create account, user exists",
+    });
+
+    if (err.errorResponse.code == 11000) {
+      // message = 'email already in use'
+      res.send({
+        status: "false",
+        message: "cannot create account, user exists",
+      });
+    } else {
+      res.send({
+        status: "false",
+        message: "cannot create account, invalid credentials",
+      });
+    }
+  }
+};
+
+const loginPage = async (req, res) => {
+  const { email, password } = req.body;
+  let user = await userModel.findOne({ email });
+  if (!user) {
+    res.send({ status: false, message: "invalid credentials" });
+  } else {
+    let isMatch = await bcrypt.compare(password, user.password);
+    if (isMatch) {
+      // res.send({status: true, message: 'user logged in successfully'})
+      const token = jwt.sign({ id: user._id }, process.env.APP_PASS, {
+        expiresIn: "1h",
+      });
+      res.send({
+        status: true,
+        message: "sign in successful",
+        token,
+        id: user._id,
+      });
+    } else {
+      console.log("invalid credentials");
+      res.json({ status: false, message: "invalid credentials" });
+      // message: 'invalid credentials'
+      //   res.render("login", { message });
+    }
+  }
+};
+
+const forgotPass = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    let user = await userModel.findOne({ email });
+    if (user) {
+      console.log(user);
+      const saltRound = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, saltRound);
+      const updatedUser = await userModel.findByIdAndUpdate(user._id, {
+        password: hashedPassword,
+      });
+      if (updatedUser) {
+        res.send({ status: true, message: "account updated successfully" });
+      }
+    }
+  } catch (error) {
+    res.send({ status: false, message: "cannot update account" });
+  }
+};
+
+const DashboardData = async (req, res) => {
+  const { id } = req.params;
+  const user = await userModel.findById(id);
+  console.log(user);
+  if (!user) return res.status(404).send("User not found");
+
+  res.json({
+    name: user.firstName + ' ' + user.lastName,
+    email: user.email,
+  });
+};
+
+module.exports = {
+  signupPage,
+  loginPage,
+  forgotPass,
+  DashboardData,
+  authenticateToken,
+  checkk,
+};
