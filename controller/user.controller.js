@@ -78,19 +78,19 @@ const signupPage = async (req, res) => {
     });
     await user.save();
 
-    var mailOptions = {
+    // var mailOptions = {
       
-    }
+    // }
 
 
     res.send({ status: true, message: "account created successfully" });
   } catch (err) {
     console.log(err);
 
-    res.send({
-      status: "false",
-      message: "cannot create account, user exists",
-    });
+    // res.send({
+    //   status: "false",
+    //   message: "cannot create account, user exists",
+    // });
 
     if (err.errorResponse.code == 11000) {
       // message = 'email already in use'
@@ -164,8 +164,29 @@ const DashboardData = async (req, res) => {
   res.json({
     name: user.firstName + ' ' + user.lastName,
     email: user.email,
+    balance: user.accountBalance,
+    profile : user.profileImage,
+    accountnum: user.accountNumber,
   });
 };
+
+const resolveAccount = async (req, res) =>{
+    const {accountNumber} = req.body
+    try {
+      let user = await userModel.findOne({accountNumber})
+      if(user){
+        res.send({firstName: user.firstName, lastName: user.lastName, profileImage: user.profileImage})
+        console.log(user); 
+      }
+      else{
+        res.send({data: 'cannot resolve account', status: false})
+      }
+    } catch (error) {
+      console.log(error);
+      
+    }
+
+}
 
 module.exports = {
   signupPage,
@@ -174,4 +195,5 @@ module.exports = {
   DashboardData,
   authenticateToken,
   checkk,
+  resolveAccount,
 };
