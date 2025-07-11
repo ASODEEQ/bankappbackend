@@ -24,19 +24,19 @@ const authenticateToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
-  if (!token){
-    res.send({
+  if (!token) {
+    return res.send({
       status: 401,
-      message: "unauthorized token"
-    })
+      message: "unauthorized token",
+    });
   }
 
   jwt.verify(token, process.env.APP_PASS, (err, user) => {
     if (err) {
-      res.send({
+      return res.send({
         status: 403,
-        message:' token is invalid'
-      })
+        message: " token is invalid",
+      });
     }
     req.user = user;
     next();
@@ -79,9 +79,8 @@ const signupPage = async (req, res) => {
     await user.save();
 
     // var mailOptions = {
-      
-    // }
 
+    // }
 
     res.send({ status: true, message: "account created successfully" });
   } catch (err) {
@@ -162,30 +161,92 @@ const DashboardData = async (req, res) => {
   if (!user) return res.status(404).send("User not found");
 
   res.json({
-    name: user.firstName + ' ' + user.lastName,
+    name: user.firstName + " " + user.lastName,
     email: user.email,
     balance: user.accountBalance,
-    profile : user.profileImage,
+    profile: user.profileImage,
     accountnum: user.accountNumber,
   });
 };
 
-const resolveAccount = async (req, res) =>{
-    const {accountNumber} = req.body
+const resolveAccount = async (req, res) => {
+  const { accountNumber } = req.body;
+  try {
+    let user = await userModel.findOne({ accountNumber });
+    if (user) {
+      res.send({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        profileImage: user.profileImage,
+      });
+      console.log(user);
+    } else {
+      res.send({ data: "cannot resolve account", status: false });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+const transferFunds = async (req, res) => {
+  const { amount, receipientAc } = req.body;
+  const { id } = req.params;
+  let user = await userModel.findById(id);
+  try {
+    if (user) {
+    console.log(user);
+    if(amount > user.accountBalance){
+       res.send({status: false, message: 'insufficient funds'})
+    }
+    else{
+      let updatedBalance = Number(user.accountBalance )- Number(amount);
+
+    console.log(user.accountBalance);
+
+    let newUser = await userModel.findByIdAndUpdate(
+      user._id,
+      {accountBalance: updatedBalance,}
+    );
+    let receipient = await userModel.findOne({ accountNumber: receipientAc });
+    console.log(receipient);
+    let receipientUpdatedBalance = Number(amount)+ Number(receipient.accountBalance)
+    let newReceipient =  await userModel.findByIdAndUpdate(receipient._id,{accountBalance:receipientUpdatedBalance})
+
+    res.send({status:true,message:'account debited successfully'})
+    console.log(newReceipient);
+  
+    console.log(newUser);
+  }
+    }
+  } catch (error) {
+    res.send({status:false, message:'error sending amount '})
+    console.log(error)
+  }
+    
+};
+const depositFunds = async(req, res)=>{
+    const {amount, accountNumber} = req.body
+    const {id} = req.params
+    let user = await userModel.findById(id)
     try {
-      let user = await userModel.findOne({accountNumber})
-      if(user){
-        res.send({firstName: user.firstName, lastName: user.lastName, profileImage: user.profileImage})
-        console.log(user); 
+     if(user.isAdmin){
+       if(amount < 1){
+        res.send({status: false, message: 'cannot deposit less than 1'})
       }
       else{
-        res.send({data: 'cannot resolve account', status: false})
+        let customer = await userModel.findOne({accountNumber})
+        if(customer){
+          let updatedBalance = Number(amount) + Number(customer.accountBalance)
+          console.log(updatedBalance);
+          let newUser = await userModel.findByIdAndUpdate(customer._id, {accountBalance: updatedBalance} )
+          res.send({status: true, message: 'funds deposited successfully'})
+          console.log(newUser);
+        }
       }
+     }
     } catch (error) {
+      res.send({status: false, message: "cannot deposit at this moment"})
       console.log(error);
-      
-    }
-
+    }   
 }
 
 module.exports = {
@@ -196,4 +257,6 @@ module.exports = {
   authenticateToken,
   checkk,
   resolveAccount,
+  transferFunds,
+  depositFunds,
 };

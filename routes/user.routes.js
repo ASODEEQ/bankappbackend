@@ -1,7 +1,7 @@
 const express = require('express')
 const app = express()
 app.use(express.urlencoded({extended: true}))
-const {signupPage,checkk,loginPage, forgotPass, DashboardData, authenticateToken, resolveAccount}= require('../controller/user.controller')
+const {signupPage,checkk,loginPage, forgotPass, DashboardData, authenticateToken, resolveAccount, transferFunds, depositFunds}= require('../controller/user.controller')
 const router = express.Router()
 
 
@@ -14,6 +14,8 @@ router.post('/forgotpass', forgotPass)
 router.get('/dashboard/:id',authenticateToken, DashboardData)
 router.get('/checkk', checkk)
 router.post('/resolveAccount', resolveAccount)
+router.post('/transferfunds/:id', authenticateToken, transferFunds)
+router.post('/deposit/:id',authenticateToken, depositFunds)
 
 
 
