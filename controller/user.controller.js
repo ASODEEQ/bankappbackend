@@ -7,6 +7,7 @@ const cloudinary = require("cloudinary");
 const dotenv = require("dotenv");
 dotenv.config();
 const jwt = require("jsonwebtoken");
+const transactionHistoryModel = require("../models/transactionHistory.model.js");
 
 let message;
 
@@ -188,65 +189,109 @@ const resolveAccount = async (req, res) => {
   }
 };
 const transferFunds = async (req, res) => {
-  const { amount, receipientAc } = req.body;
+  const { amount, receipientAc, description } = req.body;
   const { id } = req.params;
   let user = await userModel.findById(id);
   try {
     if (user) {
-    console.log(user);
-    if(amount > user.accountBalance){
-       res.send({status: false, message: 'insufficient funds'})
-    }
-    else{
-      let updatedBalance = Number(user.accountBalance )- Number(amount);
-
-    console.log(user.accountBalance);
-
-    let newUser = await userModel.findByIdAndUpdate(
-      user._id,
-      {accountBalance: updatedBalance,}
-    );
-    let receipient = await userModel.findOne({ accountNumber: receipientAc });
-    console.log(receipient);
-    let receipientUpdatedBalance = Number(amount)+ Number(receipient.accountBalance)
-    let newReceipient =  await userModel.findByIdAndUpdate(receipient._id,{accountBalance:receipientUpdatedBalance})
-
-    res.send({status:true,message:'account debited successfully'})
-    console.log(newReceipient);
-  
-    console.log(newUser);
-  }
-    }
-  } catch (error) {
-    res.send({status:false, message:'error sending amount '})
-    console.log(error)
-  }
-    
-};
-const depositFunds = async(req, res)=>{
-    const {amount, accountNumber} = req.body
-    const {id} = req.params
-    let user = await userModel.findById(id)
-    try {
-     if(user.isAdmin){
-       if(amount < 1){
-        res.send({status: false, message: 'cannot deposit less than 1'})
+      console.log(user);
       }
-      else{
-        let customer = await userModel.findOne({accountNumber})
-        if(customer){
-          let updatedBalance = Number(amount) + Number(customer.accountBalance)
-          console.log(updatedBalance);
-          let newUser = await userModel.findByIdAndUpdate(customer._id, {accountBalance: updatedBalance} )
+      if(receipientAc === user.accountNumber){
+          res.send({status: false, message: 'cannot transfer to yourself'})
+        }
+
+      if (amount > user.accountBalance) {
+        res.send({ status: false, message: "insufficient funds" });
+      } else {
+        let updatedBalance = Number(user.accountBalance) - Number(amount);
+        res.send({ status: true, message: "Funds transferred successfully" });
+        console.log(user.accountBalance);
+
+        let newUser = await userModel.findByIdAndUpdate(user._id, {
+          accountBalance: updatedBalance,
+        });
+        let receipient = await userModel.findOne({
+          accountNumber: receipientAc,
+        });
+        console.log(receipient);
+        let receipientUpdatedBalance =
+          Number(amount) + Number(receipient.accountBalance);
+        let newReceipient = await userModel.findByIdAndUpdate(receipient._id, {
+          accountBalance: receipientUpdatedBalance,
+        });
+        await transactionHistoryModel.create({
+          userId: user._id,
+          transactionType: "transfer",
+          amount: amount,
+          accountNumber: receipientAc,
+          receipient: receipient._id,
+          balance_before: user.accountBalance,
+          balance_after : updatedBalance,
+          description: description || 'sent from EsaveMFB',
+        });
+        await transactionHistoryModel.create({
+          userId: receipient._id,
+         transactionType: 'received',
+          amount: amount,
+          accountNumber: user.accountNumber,
+          receipient: user._id,
+          balance_before: receipient.accountBalance,
+          balance_after : receipientUpdatedBalance,
+          description: description || 'received from EsaveMFB' 
+        })
+        // res.send({ status: true, message: "Funds transferred successfully" });
+        console.log(newReceipient);
+
+        console.log(newUser);
+      }
+    }catch(error){
+      res.send({ status: false, message: "error sending amount " });
+      console.log(error);
+    }
+    }
+const depositFunds = async (req, res) => {
+  const { amount, accountNumber } = req.body;
+  const { id } = req.params;
+  let user = await userModel.findById(id);
+  try {
+    if (user.isAdmin) {
+      if (amount < 1 || !user.isAdmin) {
+        res.send({ status: false, message: "cannot deposit" });
+      } else {
+        let customer = await userModel.findOne({ accountNumber });
+        if (customer) {
+          let updatedBalance = Number(amount) + Number(customer.accountBalance);
           res.send({status: true, message: 'funds deposited successfully'})
+          console.log(updatedBalance);
+          let newUser = await userModel.findByIdAndUpdate(customer._id, {
+            accountBalance: updatedBalance,
+          });
+          res.send({ status: true, message: "funds deposited successfully" });
           console.log(newUser);
         }
       }
-     }
-    } catch (error) {
-      res.send({status: false, message: "cannot deposit at this moment"})
-      console.log(error);
-    }   
+    }
+  } catch (error) {
+    res.send({ status: false, message: "cannot deposit at this moment" });
+    console.log(error);
+  }
+};
+
+const getTransactionHistory=async(req, res)=>{
+  const {id} = req.params
+  const transactions = await transactionHistoryModel.find({userId:id})
+  console.log(transactions);
+  try {
+    if( transactions){
+      res.send({status: true, data: transactions})
+    }else{
+      res.send({status: false, message: 'no transaction found'})
+    }
+    
+  } catch (error) {
+    console.log(error);
+    
+  }
 }
 
 module.exports = {
@@ -259,4 +304,5 @@ module.exports = {
   resolveAccount,
   transferFunds,
   depositFunds,
+  getTransactionHistory,
 };
