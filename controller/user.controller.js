@@ -174,15 +174,15 @@ const resolveAccount = async (req, res) => {
   const { accountNumber } = req.body;
   try {
     let user = await userModel.findOne({ accountNumber });
-    if (user) {
+    if (!user) {
+      res.send({status: false, data: "cannot resolve account"  });
+    } else {
       res.send({
         firstName: user.firstName,
         lastName: user.lastName,
         profileImage: user.profileImage,
       });
       console.log(user);
-    } else {
-      res.send({ data: "cannot resolve account", status: false });
     }
   } catch (error) {
     console.log(error);
