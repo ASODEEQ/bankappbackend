@@ -20,7 +20,6 @@ const checkk = (req, res) => {
   res.send("i dey");
 };
 
-//you will need this, very important
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -79,21 +78,14 @@ const signupPage = async (req, res) => {
     });
     await user.save();
 
-    // var mailOptions = {
-
-    // }
-
     res.send({ status: true, message: "account created successfully" });
   } catch (err) {
     console.log(err);
 
-    // res.send({
-    //   status: "false",
-    //   message: "cannot create account, user exists",
-    // });
+
 
     if (err.errorResponse.code == 11000) {
-      // message = 'email already in use'
+
       res.send({
         status: "false",
         message: "cannot create account, user exists",
@@ -115,7 +107,6 @@ const loginPage = async (req, res) => {
   } else {
     let isMatch = await bcrypt.compare(password, user.password);
     if (isMatch) {
-      // res.send({status: true, message: 'user logged in successfully'})
       const token = jwt.sign({ id: user._id }, process.env.APP_PASS, {
         expiresIn: "1h",
       });
@@ -128,8 +119,6 @@ const loginPage = async (req, res) => {
     } else {
       console.log("invalid credentials");
       res.json({ status: false, message: "invalid credentials" });
-      // message: 'invalid credentials'
-      //   res.render("login", { message });
     }
   }
 };
@@ -245,7 +234,6 @@ const transferFunds = async (req, res) => {
           balance_after : receipientUpdatedBalance,
           description: description || 'received from EsaveMFB' 
         })
-        // res.send({ status: true, message: "Funds transferred successfully" });
         console.log(newReceipient);
 
         console.log(newUser);
