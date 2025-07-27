@@ -14,7 +14,7 @@ let message;
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
   api_key: process.env.CLOUD_KEY,
-  api_secret: process.env.CLOUD_SECRET, // Click 'View API Keys' above to copy your API secret
+  api_secret: process.env.CLOUD_SECRET, 
 });
 const checkk = (req, res) => {
   res.send("i dey");
@@ -161,7 +161,10 @@ const DashboardData = async (req, res) => {
   console.log(user);
   if (!user) return res.status(404).send("User not found");
 
-  res.json({
+  console.log('dashhhhhh')
+
+  res.send({
+    dateCreated: user.dateCreated,
     name: user.firstName + " " + user.lastName,
     email: user.email,
     balance: user.accountBalance,
@@ -202,6 +205,9 @@ const transferFunds = async (req, res) => {
 
       if (amount > user.accountBalance) {
         res.send({ status: false, message: "insufficient funds" });
+        if(!user){
+          res.send({status: false, message: ' cannot transfer funds to a non existing user!'})
+        }
       } else {
         let updatedBalance = Number(user.accountBalance) - Number(amount);
         res.send({ status: true, message: "Funds transferred successfully" });

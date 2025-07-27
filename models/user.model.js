@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
     phoneNumber: { type: String, required: true },
     password: { type: String, required: true },
     isAdmin: { type: Boolean, default: false },
-    dateCreated: { type: Date, default: Date.now }, 
+    dateCreated: { type: Date, default: Date.now() }, 
     accountNumber: { type: String, unique: true } ,
     accountBalance: {type: Number, default: 100}
     
