@@ -88,12 +88,12 @@ const signupPage = async (req, res) => {
 
     if (err.errorResponse.code == 11000) {
       res.send({
-        status: "false",
+        status: false,
         message: "cannot create account, user exists",
       });
     } else {
       res.send({
-        status: "false",
+        status: false,
         message: "cannot create account, invalid credentials",
       });
     }
