@@ -79,7 +79,7 @@ const signupPage = async (req, res) => {
   } catch (err) {
     console.log(err);
 
-    if (err.errorResponse.code == 11000) {
+    if (err.errorResponse.code === 11000) {
       res.send({
         status: false,
         message: "cannot create account, user exists",
@@ -288,7 +288,6 @@ module.exports = {
   forgotPass,
   DashboardData,
   authenticateToken,
-  checkk,
   resolveAccount,
   transferFunds,
   depositFunds,
