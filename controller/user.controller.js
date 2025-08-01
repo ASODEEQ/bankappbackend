@@ -77,15 +77,16 @@ const signupPage = async (req, res) => {
       password: hashedPassword,
     });
     await user.save();
+      if(error){
+        res.send({status: false, message: 'cannot create account'})
+      }else{
 
-    res.send({ status: true, message: "account created successfully" });
+        res.send({ status: true, message: "account created successfully" });
+      }
   } catch (err) {
     console.log(err);
 
-
-
     if (err.errorResponse.code == 11000) {
-
       res.send({
         status: "false",
         message: "cannot create account, user exists",
@@ -233,7 +234,7 @@ const transferFunds = async (req, res) => {
           balance_before: receipient.accountBalance,
           balance_after : receipientUpdatedBalance,
           description: description || 'received from EsaveMFB' 
-        })
+        }) 
         console.log(newReceipient);
 
         console.log(newUser);
