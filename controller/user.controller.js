@@ -16,9 +16,6 @@ cloudinary.config({
   api_key: process.env.CLOUD_KEY,
   api_secret: process.env.CLOUD_SECRET, 
 });
-const checkk = (req, res) => {
-  res.send("i dey");
-};
 
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
@@ -48,12 +45,12 @@ const signupPage = async (req, res) => {
   const { firstName, lastName, email, phoneNumber, password, profileImage } =
     req.body;
   let image;
-  console.log("working 00");
+  console.log("working");
   try {
     const saltRound = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(req.body.password, saltRound);
 
-    console.log("working eee");
+    console.log("working..");
 
     await cloudinary.v2.uploader.upload(profileImage, async (error, result) => {
       if (error) {
@@ -77,12 +74,8 @@ const signupPage = async (req, res) => {
       password: hashedPassword,
     });
     await user.save();
-      if(error){
-        res.send({status: false, message: 'cannot create account'})
-      }else{
+    res.send({ status: true, message: "account created successfully" });
 
-        res.send({ status: true, message: "account created successfully" });
-      }
   } catch (err) {
     console.log(err);
 
