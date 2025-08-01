@@ -74,7 +74,7 @@ const signupPage = async (req, res) => {
       password: hashedPassword,
     });
     await user.save();
-    res.send({ status: true, message: "account created successfully" });
+    res.send({ status: true, message: "account created successfully"});
 
   } catch (err) {
     console.log(err);
